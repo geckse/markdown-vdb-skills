@@ -1,0 +1,10 @@
+{
+  "name": "mdvdb",
+  "description": "Skills for searching, exploring, and managing a markdown-vdb vault — a filesystem-native vector database for .md files",
+  "version": "1.0.0",
+  "author": {
+    "name": "markdown-vdb"
+  },
+  "homepage": "https://github.com/nicholasgasior/markdown-vdb",
+  "repository": "https://github.com/nicholasgasior/markdown-vdb"
+}
