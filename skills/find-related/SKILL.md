@@ -4,9 +4,6 @@ description: >
   Given a markdown (.md) file, find all related content via semantic edges,
   outgoing links, backlinks, and multi-hop traversal using mdvdb. Use when
   the user wants to understand what connects to a specific document.
-allowed-tools:
-  - Bash(mdvdb *)
-  - Read
 ---
 
 # Find Related Content

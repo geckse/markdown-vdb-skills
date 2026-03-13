@@ -4,8 +4,6 @@ description: >
   Quick situational awareness of the markdown (.md) vault: index status,
   document clusters, and file tree via mdvdb. Use when starting work in a
   vault or when asked about the state of the knowledge base.
-allowed-tools:
-  - Bash(mdvdb *)
 ---
 
 # Vault Overview

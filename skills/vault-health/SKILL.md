@@ -4,8 +4,6 @@ description: >
   Run diagnostic health checks on the markdown (.md) vault via mdvdb: doctor
   checks, orphan detection, and schema analysis. Use when the user reports
   issues or wants to audit their knowledge base.
-allowed-tools:
-  - Bash(mdvdb *)
 ---
 
 # Vault Health Check

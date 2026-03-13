@@ -4,8 +4,6 @@ description: >
   Export and summarize the knowledge graph of the markdown (.md) vault via
   mdvdb for visualization or analysis. Use when the user wants to see or
   analyze the vault's link structure and document relationships.
-allowed-tools:
-  - Bash(mdvdb *)
 ---
 
 # Graph Visualize

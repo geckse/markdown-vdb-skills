@@ -5,10 +5,6 @@ description: >
   frontmatter fields based on the vault schema, restructure headings for optimal
   chunking, and add links to related documents for graph connectivity. Use when
   a document needs better metadata, structure, or connections.
-allowed-tools:
-  - Bash(mdvdb *)
-  - Read
-  - Edit
 ---
 
 # Enhance Document

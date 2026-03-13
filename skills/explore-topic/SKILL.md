@@ -4,9 +4,6 @@ description: >
   Deep research on a topic across markdown (.md) files by combining semantic
   search with graph expansion and linked context via mdvdb. Use when the user
   needs a thorough understanding of a topic, not just a list of matches.
-allowed-tools:
-  - Bash(mdvdb *)
-  - Read
 ---
 
 # Explore Topic

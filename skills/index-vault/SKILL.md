@@ -4,8 +4,6 @@ description: >
   Ingest or re-index markdown (.md) files into the mdvdb vector database.
   Runs a preview first for safety, then ingests. Must be explicitly invoked
   since it modifies the index.
-allowed-tools:
-  - Bash(mdvdb *)
 disable-model-invocation: true
 ---
 

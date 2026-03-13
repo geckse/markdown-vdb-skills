@@ -5,9 +5,6 @@ description: >
   structure, and assess link connectivity using mdvdb. Reports missing
   frontmatter fields, orphan status, broken links, and structural issues.
   Use when auditing document quality.
-allowed-tools:
-  - Bash(mdvdb *)
-  - Read
 ---
 
 # Check Document

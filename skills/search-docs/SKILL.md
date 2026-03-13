@@ -3,8 +3,6 @@ name: search-docs
 description: >
   Search indexed markdown (.md) files using semantic, lexical, or hybrid search
   via mdvdb. Use when you need to find information across a markdown vault.
-allowed-tools:
-  - Bash(mdvdb *)
 ---
 
 # Search Docs

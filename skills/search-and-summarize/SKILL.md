@@ -3,10 +3,6 @@ name: search-and-summarize
 description: >
   Search the markdown (.md) vault for a topic via mdvdb, read the top matching
   files in full, and produce a comprehensive cited synthesis.
-allowed-tools:
-  - Bash(mdvdb *)
-  - Read
-context: fork
 disable-model-invocation: true
 ---
 

@@ -5,11 +5,6 @@ description: >
   proper YAML frontmatter based on the vault's schema, structured headings for
   chunking, and wiki/markdown links to related files for graph connectivity.
   Use when creating new documents in an mdvdb vault.
-allowed-tools:
-  - Bash(mdvdb *)
-  - Read
-  - Write
-  - Glob
 ---
 
 # Write Document
