@@ -1,10 +1,8 @@
 {
   "name": "mdvdb",
-  "description": "Skills for searching, exploring, and managing a markdown-vdb vault — a filesystem-native vector database for .md files",
+  "description": "Context-expanding skills for working with markdown-vdb vaults: semantic search, topic exploration, document health checks, graph visualization, and vault management.",
   "version": "1.0.0",
   "author": {
-    "name": "markdown-vdb"
-  },
-  "homepage": "https://github.com/geckse/markdown-vdb-skills",
-  "repository": "https://github.com/geckse/markdown-vdb-skills"
+    "name": "geckse"
+  }
 }
