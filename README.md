@@ -1,24 +1,26 @@
 # mdvdb Skills for Claude Code
 
-Claude Code skills for [markdown-vdb](https://github.com/geckse/markdown-vdb) — a filesystem-native vector database for Markdown files.
+Claude Code plugin marketplace for [markdown-vdb](https://github.com/geckse/markdown-vdb) — a filesystem-native vector database for Markdown files.
 
 ## Installation
 
-Clone this repo into your project's skills directory:
+Add as a marketplace in Claude Code / Claude Desktop using the GitHub repo URL:
 
-```bash
-git clone https://github.com/geckse/markdown-vdb-skills.git skills
+```
+https://github.com/geckse/markdown-vdb-skills
 ```
 
-Or add as a git submodule:
+Or test locally:
 
 ```bash
-git submodule add https://github.com/geckse/markdown-vdb-skills.git skills
+claude --plugin-dir ./plugins/mdvdb
 ```
 
 Requires `mdvdb` to be installed and available on your `PATH`.
 
 ## Skills
+
+Once installed, Claude automatically picks the right skill based on what you ask.
 
 | Skill | Description |
 |---|---|
@@ -34,14 +36,17 @@ Requires `mdvdb` to be installed and available on your `PATH`.
 | `write-document` | Create a new markdown file optimized for indexing with proper frontmatter and links |
 | `graph-visualize` | Export and summarize the vault's knowledge graph for visualization or analysis |
 
-## Usage
-
-Once installed, skills are available as slash commands in Claude Code:
+## Structure
 
 ```
-/search-docs query about your topic
-/vault-overview
-/index-vault
+marketplace.json                    # Marketplace manifest
+plugins/
+  mdvdb/
+    .claude-plugin/plugin.json      # Plugin manifest
+    skills/
+      search-docs/SKILL.md
+      explore-topic/SKILL.md
+      ...
 ```
 
 ## License
