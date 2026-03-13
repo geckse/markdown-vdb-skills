@@ -1,13 +1,14 @@
-# mdvdb Skills for Claude Code
+# mdvdb — Claude Code Plugin
 
-Claude Code plugin marketplace for [markdown-vdb](https://github.com/geckse/markdown-vdb) — a filesystem-native vector database for Markdown files.
+Claude Code plugin for [markdown-vdb](https://github.com/geckse/markdown-vdb) — a filesystem-native vector database for Markdown files.
 
 ## Installation
 
-Add as a marketplace in Claude Code / Claude Desktop using the GitHub repo URL:
+Add the marketplace and install:
 
 ```
-https://github.com/geckse/markdown-vdb-skills
+/plugin marketplace add geckse/markdown-vdb-skills
+/plugin install mdvdb@mdvdb-skills
 ```
 
 Or test locally:
@@ -39,7 +40,8 @@ Once installed, Claude automatically picks the right skill based on what you ask
 ## Structure
 
 ```
-marketplace.json                    # Marketplace manifest
+.claude-plugin/
+  marketplace.json                  # Marketplace catalog
 plugins/
   mdvdb/
     .claude-plugin/plugin.json      # Plugin manifest
