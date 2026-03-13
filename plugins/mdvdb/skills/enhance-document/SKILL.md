@@ -1,18 +1,141 @@
 ---
 name: enhance-document
 description: >
-  Improve an existing markdown (.md) file for better mdvdb indexing: add missing
-  frontmatter fields based on the vault schema, restructure headings for optimal
-  chunking, and add links to related documents for graph connectivity. Use when
-  a document needs better metadata, structure, or connections.
+  Improve an existing markdown (.md) file for better mdvdb indexing. Applies
+  markdown best practices for frontmatter, heading structure, chunking, and
+  link connectivity. Use when a document needs better metadata, structure,
+  or connections — or when the user asks how to write good markdown for mdvdb.
 ---
 
 # Enhance Document
 
-Improve an existing markdown file's frontmatter, heading structure, and links
-for better search, filtering, and graph connectivity in mdvdb.
+Improve a markdown file so mdvdb can index, search, chunk, and link it optimally.
+This skill doubles as a reference for writing markdown that works well with mdvdb.
 
 **Input:** `$ARGUMENTS` is the path to the markdown file to enhance.
+
+## Markdown Guidelines for mdvdb
+
+These are the rules that matter for how mdvdb parses, chunks, embeds, and searches
+your files. Follow them when enhancing a document.
+
+### Frontmatter
+
+mdvdb reads YAML frontmatter between `---` fences. It never writes to your files —
+frontmatter is read-only metadata used for filtering and schema inference.
+
+**Rules:**
+- Use proper YAML types: arrays for tags (`[design, api]`), not comma-separated strings
+- Dates in ISO format: `2024-03-15`, not `March 15`
+- Omit fields rather than setting them to `null`
+- Keep field names consistent across the vault — mdvdb infers a schema from all files
+- Common useful fields: `title`, `tags`, `status`, `type`, `created`, `updated`
+- Every field you add becomes a filter dimension: `mdvdb search "x" --filter status=draft`
+
+**Good:**
+```yaml
+---
+title: Authentication Flow
+tags: [auth, security, api]
+status: published
+created: 2024-03-15
+---
+```
+
+**Bad:**
+```yaml
+---
+title: Authentication Flow
+tags: auth, security, api    # string, not array — can't filter by tag
+date: March 15               # not ISO — inconsistent type
+category: null               # don't set null, just omit
+---
+```
+
+### Headings and Chunking
+
+mdvdb splits documents by headings. Each heading starts a new chunk. Chunks that
+exceed `MDVDB_CHUNK_MAX_TOKENS` (default 512) are sub-split with overlap windows.
+Heading text becomes the chunk's searchable label in results.
+
+**Rules:**
+- Start with one `# H1` title (matches the document's purpose)
+- Use proper hierarchy: H1 → H2 → H3. Never skip levels (H1 → H3)
+- Each section should be roughly 100–500 tokens (a few paragraphs)
+- Break large sections into subsections — don't dump 2000 words under one heading
+- Make headings descriptive and specific: `## OAuth2 Token Refresh` not `## Details`
+- Add a brief preamble paragraph before the first H2 (it becomes its own chunk)
+- Avoid empty sections (heading with no content underneath)
+
+**Good structure:**
+```markdown
+# Authentication Guide
+
+Brief overview of the auth system and what this document covers.
+
+## OAuth2 Flow
+
+How the OAuth2 flow works in our system...
+
+### Token Refresh
+
+When tokens expire, the refresh mechanism...
+
+### Error Handling
+
+Common auth errors and how to handle them...
+
+## API Key Authentication
+
+Alternative auth method for service-to-service calls...
+```
+
+**Bad structure:**
+```markdown
+# Auth
+
+## Details
+
+(2000 words of content under one heading — will be sub-split with overlap,
+losing heading context)
+
+#### Error Codes
+
+(skipped H2 and H3 — broken hierarchy)
+```
+
+### Links and Graph Connectivity
+
+mdvdb extracts markdown links and wikilinks to build a link graph. Links affect
+search ranking (`--boost-links`), enable graph traversal (`mdvdb links`, `backlinks`,
+`neighborhood`), and identify orphans. More links = better search results.
+
+**Rules:**
+- Use `[[wikilinks]]` for quick inline references to other vault files
+- Use `[descriptive text](path/to/file.md)` for contextual references
+- Link to related topics, not just sequential pages
+- Section-specific links work: `[[auth#Token Refresh]]` or `[see refresh](auth.md#token-refresh)`
+- Aim for no orphans — every file should link to or be linked from at least one other file
+- Links use relative paths from the project root
+
+**Good:**
+```markdown
+This uses the same token format as [[oauth2-spec]].
+For error handling, see [Authentication Errors](errors/auth-errors.md).
+Related: [[api-keys]], [[session-management#Expiry]]
+```
+
+### Content Quality for Search
+
+mdvdb embeds chunk content as vectors and indexes it for BM25 lexical search.
+Both benefit from clear, specific writing.
+
+**Rules:**
+- Front-load key terms in paragraphs — first sentence matters most for BM25
+- Use the same terminology consistently (don't alternate between "auth" and "authentication" for the same concept)
+- Include specific terms and names — semantic search matches meaning, lexical search matches words
+- Avoid walls of code without prose explanation — embeddings work better on natural language
+- Tables and lists are fine — they're included in chunk text
 
 ## Steps
 
@@ -28,11 +151,10 @@ mdvdb schema --json
 
 Compare the document's frontmatter against the vault schema:
 - What fields exist in the schema but are missing from this document?
-- Are field values consistent with the schema's types and allowed values?
-- Are dates in ISO format (`YYYY-MM-DD`)?
-- Are tags proper YAML arrays, not comma-separated strings?
+- Are field values consistent with the schema's types?
+- Are dates in ISO format? Are tags proper YAML arrays?
 
-Also check what sibling files look like for context:
+Also check sibling files for context:
 ```
 mdvdb tree --path <parent-dir> --json
 ```
@@ -47,7 +169,7 @@ mdvdb backlinks "$ARGUMENTS" --json
 Assess connectivity:
 - Does this file link to related content?
 - Do other files link back to it?
-- Is it an orphan (no links in or out)?
+- Is it an orphan?
 
 ### 4. Find link candidates
 
@@ -66,24 +188,13 @@ mdvdb orphans --json
 Apply improvements using the Edit tool. Never change the document's meaning —
 only improve its structure and metadata.
 
-**Frontmatter improvements:**
-- Add missing schema fields with appropriate values
-- Fix type inconsistencies (e.g., string date → ISO date)
-- Convert comma-separated tags to YAML arrays
-- Remove `null` values (omit the field instead)
+**Frontmatter:** Add missing schema fields, fix types, convert tag strings to arrays.
 
-**Heading improvements:**
-- Ensure proper hierarchy (H1 > H2 > H3, no skipped levels)
-- Break oversized sections into subsections (aim for ~300-500 tokens per section)
-- Add a preamble paragraph before the first heading if missing
-- Make heading text descriptive (they become searchable chunk labels)
+**Headings:** Fix hierarchy, break oversized sections, make heading text descriptive.
 
-**Link improvements:**
-- Add links to related documents found via search
-- Use `[[wiki links]]` for quick references within the text
-- Use `[text](path.md)` for contextual references
-- Suggest links to/from orphan documents where relevant
-- Add section-specific links where useful: `[[doc#Section]]`
+**Links:** Add links to related documents found via search, link orphans where relevant.
+
+**Content:** Front-load key terms, add brief prose before code blocks, ensure consistent terminology.
 
 ### 6. Report changes
 
