@@ -2,9 +2,10 @@
 name: write-document
 description: >
   Create a new markdown (.md) document optimized for mdvdb indexing. Generates
-  proper YAML frontmatter based on the vault's schema, structured headings for
-  chunking, and wiki/markdown links to related files for graph connectivity.
-  Use when creating new documents in an mdvdb vault.
+  proper YAML frontmatter based on the vault's schema (including typed relation
+  fields), structured headings for chunking, and wiki/markdown links to related
+  files for graph connectivity. Use when creating new documents in an mdvdb
+  vault.
 ---
 
 # Write Document
@@ -23,12 +24,25 @@ Run the schema command to learn what frontmatter fields exist across the vault:
 mdvdb schema --json
 ```
 
-This reveals the "relational database" of metadata fields: their types, how many
-files use each field, sample values, and any allowed value constraints. Different
+This reveals the metadata fields across the vault: their types, how many files
+use each field, sample values, and any allowed value constraints. Different
 folders may have different schemas (e.g., `/blog/` has date/author/tags,
 `/people/` has role/team/email).
 
-If a target path was given, also check what files are nearby:
+If a target folder is known, prefer the folder's table definition:
+```
+mdvdb collection <parent-dir> --json
+```
+Its `columns[]` (`name`, `field_type`, `required`, `in_schema`,
+`relation_target`, `sample_values`) describe exactly what frontmatter sibling
+files use — including relation columns (`relation_target` names their target
+folder when declared in the `.markdownvdb.schema.yml` overlay; it is null for
+relations inferred purely from values — infer the folder from `sample_values`
+then). `required` fields come from the overlay and must be included.
+(`mdvdb schema --path <parent-dir> --json` gives the folder-scoped schema
+directly.)
+
+Also check what files are nearby:
 ```
 mdvdb tree --path <parent-dir> --json
 ```
@@ -54,6 +68,12 @@ Create the `.md` file with these components:
 - Tags as YAML arrays, not comma-separated strings
 - Omit fields that don't apply (don't use `null`)
 - These fields become search filters: `mdvdb search --filter status=published`
+- **Relation fields**: a value that is entirely a link becomes a typed relation
+  (foreign key) to another file. **Quote wiki-links** — unquoted `[[x]]` is
+  valid YAML but parses as a nested array, so no relation is detected. Lists
+  give multi-value relations.
+  Relations are filterable (`--filter client=clients/acme`) and resolvable
+  (`--populate`), and they join the link graph. See the manage-relations skill.
 
 ```yaml
 ---
@@ -64,6 +84,8 @@ tags:
   - topic-b
 status: draft
 category: guides
+client: "[[clients/acme]]"
+reviewers: ["[[people/jane]]", "[[people/joe]]"]
 ---
 ```
 
@@ -117,5 +139,6 @@ See [detailed implementation](./implementation.md#core-logic) for code.
 
 After writing, suggest the user run:
 - `mdvdb ingest --file <path>` to index the new document
-- `mdvdb get <path>` to verify frontmatter was parsed correctly
+- `mdvdb get <path> --populate` to verify frontmatter parsed correctly and
+  every relation resolves (`exists: true`)
 - `mdvdb links <path>` to confirm links were extracted

@@ -3,7 +3,6 @@ name: search-and-summarize
 description: >
   Search the markdown (.md) vault for a topic via mdvdb, read the top matching
   files in full, and produce a comprehensive cited synthesis.
-disable-model-invocation: true
 ---
 
 # Search and Summarize
@@ -17,18 +16,23 @@ Only works with `.md` files indexed by mdvdb.
 
 1. Search the vault with link boosting:
    ```
-   mdvdb search "$ARGUMENTS" --json --limit 8 --mode hybrid --boost-links
+   mdvdb search "$ARGUMENTS" --json --limit 8 --mode hybrid --boost-links --populate
    ```
+   (`--populate` resolves frontmatter relations so the synthesis can name
+   related entities — clients, authors, projects.)
 
 2. Identify the top-scoring files (score > 0.5 or top 5, whichever is more).
+   (Do this client-side rather than with `--min-score`, which would drop the
+   top-5 fallback on low-scoring queries.)
 
-3. Read each identified file in full using the Read tool. Use the `file` field
-   from each search result as the path.
+3. Read each identified file in full using the Read tool. Use the `file.path`
+   field from each search result as the path (relative to the vault root).
 
 4. For each file, note:
    - Main points relevant to the query
    - Key data, definitions, or arguments
-   - How it relates to the other files
+   - How it relates to the other files (including relation fields from
+     `file.relations`, e.g. shared clients or projects)
 
 5. Produce a structured synthesis:
 

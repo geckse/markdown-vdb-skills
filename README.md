@@ -17,7 +17,9 @@ Or test locally:
 claude --plugin-dir ./plugins/mdvdb
 ```
 
-Requires `mdvdb` to be installed and available on your `PATH`.
+Requires `mdvdb` **≥ 0.2.0** installed and available on your `PATH` (check with `mdvdb --version`).
+
+All commands accept `--root <vault>` when the working directory is not the vault — every skill's command works from anywhere by adding it.
 
 ## Skills
 
@@ -25,17 +27,24 @@ Once installed, Claude automatically picks the right skill based on what you ask
 
 | Skill | Description |
 |---|---|
-| `search-docs` | Search indexed markdown files using semantic, lexical, or hybrid search |
+| `search-docs` | Search indexed markdown files using semantic, lexical, or hybrid search — with frontmatter/relation filters and `--populate` |
 | `search-and-summarize` | Search for a topic, read top matches in full, and produce a cited synthesis |
 | `explore-topic` | Deep research combining semantic search with graph expansion and linked context |
-| `find-related` | Find all related content via semantic edges, links, backlinks, and multi-hop traversal |
-| `index-vault` | Ingest or re-index markdown files into the vector database |
-| `vault-overview` | Quick situational awareness: index status, clusters, and file tree |
-| `vault-health` | Diagnostic checks: doctor, orphan detection, and schema analysis |
-| `check-document` | Validate a file against the vault schema, check structure and link connectivity |
-| `enhance-document` | Improve a file for better indexing: add frontmatter, restructure headings, add links |
-| `write-document` | Create a new markdown file optimized for indexing with proper frontmatter and links |
+| `find-related` | Find all related content via typed relations, semantic edges, links, backlinks, and multi-hop traversal |
+| `query-collection` | Query a folder as a database table: rows are files, columns are frontmatter fields, with filters, sorting, and relations |
+| `manage-relations` | Author, resolve, filter, and repair typed frontmatter relations (wiki-link foreign keys) between documents |
+| `manage-topics` | Create, tune, and inspect topics (custom clusters): thresholds, seeds, and the Unassigned bucket |
+| `index-vault` | Ingest or re-index markdown files into the vector database, with cost estimates from `mdvdb info` |
+| `vault-overview` | Quick situational awareness: index status, vault stats, clusters, topics, and file tree |
+| `vault-health` | Diagnostic checks: doctor (incl. relation integrity), orphan detection, and schema analysis |
+| `check-document` | Validate a file against the vault schema, check structure, relations, and link connectivity |
+| `enhance-document` | Improve a file for better indexing: add frontmatter, relations, restructure headings, add links |
+| `write-document` | Create a new markdown file optimized for indexing with proper frontmatter, relations, and links |
 | `graph-visualize` | Export and summarize the vault's knowledge graph for visualization or analysis |
+
+## Tesseract
+
+[Tesseract](https://tesseract.md) ([geckse/tesseract-md-app](https://github.com/geckse/tesseract-md-app)) is the local-first desktop app companion for mdvdb: a markdown editor with a 3D knowledge graph, topics, relations UI, and a folder-as-table database view. It runs the same `mdvdb` CLI against the same vault — shared `.markdownvdb/` index and `config.yaml` — so everything these skills do via CLI is immediately visible in the app, and vice versa. Tesseract also imports Obsidian tags and graph color groups as topics. When a user mentions "Tesseract" or "tesseract.md", they mean this app operating on the same vault.
 
 ## Structure
 

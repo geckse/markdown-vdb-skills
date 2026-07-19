@@ -2,9 +2,10 @@
 name: enhance-document
 description: >
   Improve an existing markdown (.md) file for better mdvdb indexing. Applies
-  markdown best practices for frontmatter, heading structure, chunking, and
-  link connectivity. Use when a document needs better metadata, structure,
-  or connections — or when the user asks how to write good markdown for mdvdb.
+  markdown best practices for frontmatter, typed relations, heading structure,
+  chunking, and link connectivity. Use when a document needs better metadata,
+  structure, or connections — or when the user asks how to write good markdown
+  for mdvdb.
 ---
 
 # Enhance Document
@@ -31,6 +32,7 @@ frontmatter is read-only metadata used for filtering and schema inference.
 - Keep field names consistent across the vault — mdvdb infers a schema from all files
 - Common useful fields: `title`, `tags`, `status`, `type`, `created`, `updated`
 - Every field you add becomes a filter dimension: `mdvdb search "x" --filter status=draft`
+- Link-shaped values are **relations** (typed foreign keys) — see below
 
 **Good:**
 ```yaml
@@ -52,10 +54,36 @@ category: null               # don't set null, just omit
 ---
 ```
 
+### Relations (typed frontmatter links)
+
+A frontmatter value that is entirely a link becomes a **relation** — a typed
+edge to another file, labeled with the field name. Relations are filterable
+(`--filter client=clients/acme`), resolvable (`--populate`), and appear in the
+link graph. **Wiki-link values must be quoted** — unquoted `[[x]]` is valid
+YAML but parses as a nested array instead of a string, so mdvdb silently
+detects no relation.
+
+**Good:**
+```yaml
+client: "[[clients/acme]]"                      # quoted wiki-link
+authors: ["[[people/jane]]", "[[people/joe]]"]  # list = multi-value relation
+project: projects/apollo.md                     # bare path also works
+```
+
+**Bad:**
+```yaml
+client: [[clients/acme]]     # unquoted — parses as a nested array, no relation detected
+```
+
+See the manage-relations skill for resolution rules, the schema overlay
+(`target:` folders), and health checks.
+
 ### Headings and Chunking
 
 mdvdb splits documents by headings. Each heading starts a new chunk. Chunks that
-exceed `MDVDB_CHUNK_MAX_TOKENS` (default 512) are sub-split with overlap windows.
+exceed `chunking.max_tokens` (default 512; set via
+`mdvdb config set chunking.max_tokens 512`, or the `MDVDB_CHUNK_MAX_TOKENS` env
+override) are sub-split with overlap windows.
 Heading text becomes the chunk's searchable label in results.
 
 **Rules:**
@@ -97,18 +125,20 @@ Alternative auth method for service-to-service calls...
 ## Details
 
 (2000 words of content under one heading — will be sub-split with overlap,
-losing heading context)
+every sub-chunk sharing the same generic heading label instead of a
+specific per-topic one)
 
 #### Error Codes
 
-(skipped H2 and H3 — broken hierarchy)
+(skipped H3 — broken hierarchy)
 ```
 
 ### Links and Graph Connectivity
 
 mdvdb extracts markdown links and wikilinks to build a link graph. Links affect
-search ranking (`--boost-links`), enable graph traversal (`mdvdb links`, `backlinks`,
-`neighborhood`), and identify orphans. More links = better search results.
+search ranking (`--boost-links`), enable graph traversal (`mdvdb links --depth 1-3`,
+`mdvdb backlinks`), and identify orphans. More links = better search results.
+Frontmatter relations (above) join the same graph as typed edges.
 
 **Rules:**
 - Use `[[wikilinks]]` for quick inline references to other vault files
@@ -116,7 +146,9 @@ search ranking (`--boost-links`), enable graph traversal (`mdvdb links`, `backli
 - Link to related topics, not just sequential pages
 - Section-specific links work: `[[auth#Token Refresh]]` or `[see refresh](auth.md#token-refresh)`
 - Aim for no orphans — every file should link to or be linked from at least one other file
-- Links use relative paths from the project root
+- Body links (wikilinks and markdown links) resolve relative to the containing
+  file's directory — use `../` to reach files in other folders. Only
+  frontmatter relation values containing `/` resolve from the vault root first
 
 **Good:**
 ```markdown
@@ -164,12 +196,15 @@ mdvdb tree --path <parent-dir> --json
 ```
 mdvdb links "$ARGUMENTS" --json
 mdvdb backlinks "$ARGUMENTS" --json
+mdvdb get "$ARGUMENTS" --populate --json
 ```
 
 Assess connectivity:
 - Does this file link to related content?
 - Do other files link back to it?
 - Is it an orphan?
+- Do its relations resolve? (`relations` entries with `exists: false` are
+  dangling); who references it via relation fields (`referenced_by`)?
 
 ### 4. Find link candidates
 
@@ -183,12 +218,22 @@ Also check for orphans that might benefit from a link:
 mdvdb orphans --json
 ```
 
+And check the folder's relation columns — fields with `relation_target` set
+that this file lacks are candidates for new relation fields:
+```
+mdvdb collection <parent-dir> --json
+```
+
 ### 5. Enhance the document
 
 Apply improvements using the Edit tool. Never change the document's meaning —
 only improve its structure and metadata.
 
 **Frontmatter:** Add missing schema fields, fix types, convert tag strings to arrays.
+
+**Relations:** Convert prose references into typed frontmatter relations where
+the folder has a field convention (from step 4's columns); always quote
+wiki-link values.
 
 **Headings:** Fix hierarchy, break oversized sections, make heading text descriptive.
 
@@ -200,6 +245,8 @@ only improve its structure and metadata.
 
 Summarize what was improved:
 - Frontmatter fields added or fixed
+- Relations added or repaired
 - Headings restructured
 - Links added (and to which documents)
-- Suggest re-indexing: `mdvdb ingest --file <path>`
+- Suggest re-indexing: `mdvdb ingest --file <path>`, then verify with
+  `mdvdb get <path> --populate --json` (all relations should show `exists: true`)
