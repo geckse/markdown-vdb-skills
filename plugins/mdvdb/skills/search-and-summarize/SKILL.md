@@ -1,8 +1,10 @@
 ---
 name: search-and-summarize
 description: >
-  Search the markdown (.md) vault for a topic via mdvdb, read the top matching
-  files in full, and produce a comprehensive cited synthesis.
+  Search an mdvdb Collection or named Shard/sub-collection for a topic, read
+  the top matching markdown (.md) files in full, and produce a comprehensive
+  cited synthesis. Use when the answer should cover a whole vault or one
+  explicitly scoped working context.
 ---
 
 # Search and Summarize
@@ -18,6 +20,9 @@ Only works with `.md` files indexed by mdvdb.
    ```
    mdvdb search "$ARGUMENTS" --json --limit 8 --mode hybrid --boost-links --populate
    ```
+   If the user names a Shard, resolve its immutable ID with
+   `mdvdb shards list --json` and add `--shard <ID>`. Do not replace it with a
+   guessed path or combine it with `--path`.
    (`--populate` resolves frontmatter relations so the synthesis can name
    related entities — clients, authors, projects.)
 

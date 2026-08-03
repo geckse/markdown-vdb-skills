@@ -2,10 +2,11 @@
 name: enhance-document
 description: >
   Improve an existing markdown (.md) file for better mdvdb indexing. Applies
-  markdown best practices for frontmatter, typed relations, heading structure,
+  markdown best practices for frontmatter, typed relations, File attachment
+  fields, and read-only Formula/Lookup/Rollup outputs, plus heading structure,
   chunking, and link connectivity. Use when a document needs better metadata,
-  structure, or connections — or when the user asks how to write good markdown
-  for mdvdb.
+  structure, attachments, or connections — or when the user asks how to write
+  good markdown for mdvdb.
 ---
 
 # Enhance Document
@@ -22,8 +23,11 @@ your files. Follow them when enhancing a document.
 
 ### Frontmatter
 
-mdvdb reads YAML frontmatter between `---` fences. It never writes to your files —
-frontmatter is read-only metadata used for filtering and schema inference.
+mdvdb reads YAML frontmatter between `---` fences. Ordinary properties are
+user-authored metadata used for filtering and schema inference. Formula,
+Lookup, and Rollup properties are the exception: their modules safely
+materialize owned results into frontmatter, and users must treat those outputs
+as read-only.
 
 **Rules:**
 - Use proper YAML types: arrays for tags (`[design, api]`), not comma-separated strings
@@ -32,7 +36,11 @@ frontmatter is read-only metadata used for filtering and schema inference.
 - Keep field names consistent across the vault — mdvdb infers a schema from all files
 - Common useful fields: `title`, `tags`, `status`, `type`, `created`, `updated`
 - Every field you add becomes a filter dimension: `mdvdb search "x" --filter status=draft`
-- Link-shaped values are **relations** (typed foreign keys) — see below
+- Links to Markdown documents are **relations**; links with explicit
+  non-Markdown extensions are **File** values — see below
+- Never manually add, change, or remove a schema field whose type is `Formula`,
+  `Lookup`, or `Rollup`; fix its inputs, dependency, or overlay definition and
+  let the owning module reconcile it
 
 **Good:**
 ```yaml
@@ -56,18 +64,22 @@ category: null               # don't set null, just omit
 
 ### Relations (typed frontmatter links)
 
-A frontmatter value that is entirely a link becomes a **relation** — a typed
-edge to another file, labeled with the field name. Relations are filterable
-(`--filter client=clients/acme`), resolvable (`--populate`), and appear in the
-link graph. **Wiki-link values must be quoted** — unquoted `[[x]]` is valid
-YAML but parses as a nested array instead of a string, so mdvdb silently
-detects no relation.
+A frontmatter value that is entirely a link to a Markdown document becomes a
+**relation** — a typed edge labeled with the field name. Relations are
+filterable (`--filter client=clients/acme`), resolvable (`--populate`), and
+appear in the link graph. Prefer plain `.md` paths in frontmatter because they
+are easier to read and write. Wiki links and Markdown links remain supported
+for existing content. Wiki-link values that remain must be quoted: unquoted
+`[[x]]` is valid YAML but parses as a nested array instead of a string, so
+mdvdb detects no relation.
 
 **Good:**
 ```yaml
-client: "[[clients/acme]]"                      # quoted wiki-link
-authors: ["[[people/jane]]", "[[people/joe]]"]  # list = multi-value relation
-project: projects/apollo.md                     # bare path also works
+client: clients/acme.md
+authors:
+  - people/jane.md
+  - people/joe.md
+project: projects/apollo.md
 ```
 
 **Bad:**
@@ -77,6 +89,27 @@ client: [[clients/acme]]     # unquoted — parses as a nested array, no relatio
 
 See the manage-relations skill for resolution rules, the schema overlay
 (`target:` folders), and health checks.
+
+### File attachment fields
+
+Use a `File` field for collection-local, non-Markdown resources that belong to
+the document without becoming knowledge-graph nodes: images, PDFs, media,
+office files, archives, and other physical files. Canonical YAML is always a
+list:
+
+```yaml
+attachments:
+  - "[[assets/mockup.png]]"
+  - "[[documents/spec.pdf]]"
+```
+
+Quote every wiki link and keep paths relative to the vault root. Do not use
+absolute paths, URLs, `..`, or Markdown targets. An explicit non-Markdown
+extension infers `File` in mdvdb ≥ 0.2.0; add `field_type: file` to
+`.markdownvdb.schema.yml` for empty lists and extensionless/ambiguous
+filenames. Do not add `target:`. File values are raw frontmatter only:
+`--populate`, backlinks, orphan checks, and the Markdown graph intentionally
+ignore them.
 
 ### Headings and Chunking
 
@@ -185,6 +218,9 @@ Compare the document's frontmatter against the vault schema:
 - What fields exist in the schema but are missing from this document?
 - Are field values consistent with the schema's types?
 - Are dates in ISO format? Are tags proper YAML arrays?
+- Which fields are `Formula`, `Lookup`, or `Rollup` outputs? Exclude them from
+  missing-field suggestions. Check `computed_field_errors` and module status
+  instead of manufacturing a value.
 
 Also check sibling files for context:
 ```
@@ -229,11 +265,19 @@ mdvdb collection <parent-dir> --json
 Apply improvements using the Edit tool. Never change the document's meaning —
 only improve its structure and metadata.
 
-**Frontmatter:** Add missing schema fields, fix types, convert tag strings to arrays.
+**Frontmatter:** Add missing ordinary schema fields, fix types, and convert tag
+strings to arrays. Preserve every module-owned Formula/Lookup/Rollup output
+byte-for-byte; do not add a missing output or delete a stale-looking one by
+hand.
 
 **Relations:** Convert prose references into typed frontmatter relations where
-the folder has a field convention (from step 4's columns); always quote
-wiki-link values.
+the folder has a field convention (from step 4's columns). Write plain `.md`
+paths by default; preserve supported wiki/Markdown link syntax unless changing
+that relation, and always quote wiki-link values that remain.
+
+**Files:** Keep attachment values as quoted, root-relative wiki links in a
+list; normalize any legacy scalar File value when editing it. Never delete a
+physical file merely because its frontmatter reference is removed.
 
 **Headings:** Fix hierarchy, break oversized sections, make heading text descriptive.
 
@@ -246,7 +290,13 @@ wiki-link values.
 Summarize what was improved:
 - Frontmatter fields added or fixed
 - Relations added or repaired
+- File attachment fields normalized or repaired
+- Computed outputs left module-owned; report any diagnostics separately
 - Headings restructured
 - Links added (and to which documents)
 - Suggest re-indexing: `mdvdb ingest --file <path>`, then verify with
-  `mdvdb get <path> --populate --json` (all relations should show `exists: true`)
+  `mdvdb get <path> --populate --json` (all relations should show `exists: true`
+  and `computed_field_errors` should be empty). If not, inspect
+  `mdvdb modules status formula --json` and
+  `mdvdb modules status lookup_rollup --json`, fix the dependency or
+  definition, and rerun the owning module rather than editing its output.

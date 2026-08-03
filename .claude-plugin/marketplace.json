@@ -7,8 +7,8 @@
     {
       "name": "mdvdb",
       "source": "./plugins/mdvdb",
-      "description": "Context-expanding skills for working with markdown-vdb vaults: semantic search, topic exploration and management, folder collections, frontmatter relations, document health checks, graph visualization, and vault management.",
-      "version": "1.1.0",
+      "description": "Context-expanding skills for working with markdown-vdb vaults: semantic search, named Shards (recursive sub-collections), topic exploration and management, folder tables, frontmatter relations and File fields, document health checks, graph visualization, and vault management.",
+      "version": "1.2.0",
       "author": {
         "name": "geckse"
       },

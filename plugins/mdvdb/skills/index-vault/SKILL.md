@@ -2,8 +2,10 @@
 name: index-vault
 description: >
   Ingest or re-index markdown (.md) files into the mdvdb vector database.
-  Checks cost with mdvdb info, runs a preview first for safety, then ingests.
-  Must be explicitly invoked since it modifies the index.
+  Checks cost with mdvdb info, previews index/embedding work, then ingests and
+  reports Formula/Lookup/Rollup materialization diagnostics. Must be explicitly
+  invoked because it modifies the index and may safely update module-owned
+  computed frontmatter.
 disable-model-invocation: true
 ---
 
@@ -39,12 +41,17 @@ Only works with `.md` files.
    stop (`deleted > 0` means an incremental ingest will remove stale entries —
    no embedding cost).
 
-3. Run a preview to show exactly what will happen:
+3. Preview discovery, chunking, and embedding work:
    ```
    mdvdb ingest --preview --json
    ```
    If the user specified `--reindex`, add that flag.
    If the user specified `--file PATH`, add that flag.
+
+   Preview does not execute Formula or Lookup/Rollup and therefore does not
+   enumerate their frontmatter patches. Treat it as an index/API-cost preview,
+   not a computed-write preview. Actual module writes remain per-document,
+   atomic, ownership-checked, and conflict-safe.
 
 4. Display the preview:
    - Files that will be indexed (new or changed)
@@ -64,8 +71,19 @@ Only works with `.md` files.
    - Chunks created
    - Duration
    - Any errors encountered
+   - Ordered `module_reports` (`formula` before `lookup_rollup`), including
+     files evaluated, fields updated, and every path/field diagnostic
 
-8. If there were errors, suggest running `mdvdb doctor` to diagnose.
+8. If there were ingest errors, suggest `mdvdb doctor`. For computed failures,
+   inspect `mdvdb modules status formula --json` and
+   `mdvdb modules status lookup_rollup --json`. Fix the input, Relation,
+   target field, formula, or dependency and rerun the relevant module; never
+   type, batch-copy, or delete its materialized output.
+
+Formula and `lookup_rollup` are always-on. Their successful values are
+materialized into Markdown frontmatter without re-embedding an unchanged body;
+frontmatter is authoritative for queries, while `computed_fields` is only a
+provenance mirror and `computed_field_errors` suppresses failed stale values.
 
 For extended editing sessions, `mdvdb watch` re-indexes changed files
 automatically (run it as a background process) instead of repeated per-file

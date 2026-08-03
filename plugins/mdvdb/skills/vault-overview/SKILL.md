@@ -1,10 +1,11 @@
 ---
 name: vault-overview
 description: >
-  Quick situational awareness of the markdown (.md) vault: index status,
-  vault statistics, document clusters, topics, and file tree via mdvdb. Use
-  when starting work in a vault, when asked about the state of the knowledge
-  base, or when the user asks about the vault behind the Tesseract app.
+  Quick situational awareness of an mdvdb Collection or named Shard:
+  definitions, index status, scoped statistics, document clusters, Topics,
+  and file tree. Use when starting work in a vault or sub-collection, when
+  asked about knowledge-base state, or when the user asks about the Collection
+  or active Shard behind the Tesseract app.
 ---
 
 # Vault Overview
@@ -16,12 +17,20 @@ Get a quick picture of the vault's current state. Only works with `.md` files in
 1. Run these commands in parallel:
    ```
    mdvdb status --json
+   mdvdb shards list --json
    mdvdb info --json
    mdvdb clusters --json
    mdvdb tree --json
    ```
 
 2. Present a structured overview:
+
+   **Shards** (from `shards list`):
+   - Named recursive sub-collections, inferred `parent_id`, folder path, and
+     missing definitions (`exists: false`)
+   - If the user requested one Shard, rerun `info`, `clusters`, and `tree`
+     with `--shard <ID>` and report that local context. Keep `status`
+     Collection-wide because the shared index is not partitioned.
 
    **Index Status** (from `status`):
    - Number of documents, chunks, and vectors indexed
@@ -41,6 +50,9 @@ Get a quick picture of the vault's current state. Only works with `.md` files in
    - If topics are defined, also run `mdvdb clusters --custom --json` and report
      per-topic document counts plus the Unassigned bucket
      (`mdvdb clusters unassigned --json`)
+   - For a requested Shard, use `mdvdb clusters --shard <ID> --json`,
+     `--custom`, and `unassigned`. Its automatic clusters and Topics are
+     independent from the Collection and every other Shard.
 
    **File Tree** (from `tree`):
    - Total file count
@@ -54,7 +66,13 @@ Get a quick picture of the vault's current state. Only works with `.md` files in
    - If many documents are Unassigned: suggest defining or tuning topics
      (see the manage-topics skill)
    - If auto clusters look unbalanced: note which clusters dominate
+   - If a Shard is missing: repair its path with `mdvdb shards update` or
+     repair a renamed prefix with `mdvdb shards retarget`
 
 If the user mentions "Tesseract" or "tesseract.md", that's the desktop app
 companion for mdvdb — it operates on this same vault and `.markdownvdb/` index,
-so everything reported here matches what the app displays.
+so everything reported here matches what the app displays. Its active Shard
+scopes the visible tree, search, global graph, Information, and schema while
+the underlying index status remains Collection-wide.
+
+Use manage-shards for Shard lifecycle and scoped command rules.

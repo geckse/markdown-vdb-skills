@@ -1,10 +1,11 @@
 ---
 name: search-docs
 description: >
-  Search indexed markdown (.md) files using semantic, lexical, or hybrid search
-  via mdvdb. Supports frontmatter and relation filters, score thresholds, time
-  decay, link-hop boosting, and resolving relations with --populate. Use when
-  you need to find information across a markdown vault.
+  Search indexed markdown (.md) files across an mdvdb Collection or inside a
+  named Shard/sub-collection using semantic, lexical, or hybrid search.
+  Supports frontmatter and relation filters, score thresholds, time decay,
+  link-hop boosting, and resolving relations with --populate. Use when you
+  need to find information across a vault or within one reusable folder scope.
 ---
 
 # Search Docs
@@ -12,7 +13,8 @@ description: >
 Search the markdown vault using `mdvdb search`. Only works with `.md` files indexed by mdvdb.
 
 **Input:** `$ARGUMENTS` is the search query. Optionally include flags like
-`--mode semantic`, `--limit 10`, `--filter tag=design`, `--path docs/`.
+`--mode semantic`, `--limit 10`, `--filter tag=design`, `--path docs/`, or
+`--shard research`.
 
 ## Steps
 
@@ -31,6 +33,9 @@ Search the markdown vault using `mdvdb search`. Only works with `.md` files inde
      `--filter client=clients/acme` matches `client: "[[clients/acme|Acme]]"`.
      Array containment: `--filter tags=rust` matches `tags: [rust, go]`
    - `--path PREFIX` — restrict to files under a path
+   - `--shard ID` — restrict direct results to a configured recursive Shard;
+     resolve IDs with `mdvdb shards list --json`. Do not combine it with
+     `--path`
    - `--boost-links` — link-graph ranking boost; add `--hops 2` (1–3) to extend
      the boost across multi-hop neighbors
    - `--expand 2` (0–3) — include chunks from linked files as `graph_context`
@@ -68,6 +73,10 @@ Search the markdown vault using `mdvdb search`. Only works with `.md` files inde
    `--expand`, a `graph_context` array is added (chunks from linked files);
    with `--populate`, each `file` gains a `relations` map
    (`{field: [{raw, path, exists, title, frontmatter}]}`).
+   Shard-scoped direct results stay inside the Shard. Expanded linked context
+   may cross its boundary; label that as supplementary or **Outside Shard**
+   rather than presenting it as a direct scoped match. Edge search scopes its
+   source path, while the edge target may remain outside.
 
 3. Present results clearly: file path (`file.path`), section (join
    `chunk.heading_hierarchy` with " > "), score, and a brief excerpt from
@@ -78,5 +87,5 @@ Search the markdown vault using `mdvdb search`. Only works with `.md` files inde
 4. If the user wants to read a specific result, use `file.path` to read the
    markdown file.
 
-For tabular folder listings use the query-collection skill; for relation
-details use the manage-relations skill.
+For reusable named scopes use manage-shards; for tabular folder/Shard listings
+use query-collection; for relation details use manage-relations.

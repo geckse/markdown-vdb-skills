@@ -3,9 +3,11 @@ name: write-document
 description: >
   Create a new markdown (.md) document optimized for mdvdb indexing. Generates
   proper YAML frontmatter based on the vault's schema (including typed relation
-  fields), structured headings for chunking, and wiki/markdown links to related
-  files for graph connectivity. Use when creating new documents in an mdvdb
-  vault.
+  and File inputs while respecting read-only computed fields), structured
+  headings for chunking, and wiki/markdown links to related files for graph
+  connectivity. Use when creating new documents in an mdvdb vault, including
+  documents with media, file attachments, or schemas containing Lookup or
+  Rollup outputs.
 ---
 
 # Write Document
@@ -34,11 +36,12 @@ If a target folder is known, prefer the folder's table definition:
 mdvdb collection <parent-dir> --json
 ```
 Its `columns[]` (`name`, `field_type`, `required`, `in_schema`,
-`relation_target`, `sample_values`) describe exactly what frontmatter sibling
-files use — including relation columns (`relation_target` names their target
-folder when declared in the `.markdownvdb.schema.yml` overlay; it is null for
-relations inferred purely from values — infer the folder from `sample_values`
-then). `required` fields come from the overlay and must be included.
+`relation_target`, `relation_field`, `target_field`, `relation_direction`,
+`relation_scope`, `formula`, `result_type`, `sample_values`) describe the
+folder's table. Relation columns use `relation_target` for their target folder;
+Lookup/Rollup columns describe their computed traversal instead. Include
+required ordinary inputs, but never seed a `Formula`, `Lookup`, or `Rollup`
+output from `sample_values`: those properties are read-only and module-owned.
 (`mdvdb schema --path <parent-dir> --json` gives the folder-scoped schema
 directly.)
 
@@ -69,11 +72,22 @@ Create the `.md` file with these components:
 - Omit fields that don't apply (don't use `null`)
 - These fields become search filters: `mdvdb search --filter status=published`
 - **Relation fields**: a value that is entirely a link becomes a typed relation
-  (foreign key) to another file. **Quote wiki-links** — unquoted `[[x]]` is
-  valid YAML but parses as a nested array, so no relation is detected. Lists
-  give multi-value relations.
+  only when it targets another Markdown document. Write plain `.md` paths by
+  default because they are easiest to read and write. Lists give multi-value
+  relations. Wiki links and Markdown links remain supported; quote wiki links
+  because unquoted `[[x]]` parses as a nested YAML array, not a relation.
   Relations are filterable (`--filter client=clients/acme`) and resolvable
   (`--populate`), and they join the link graph. See the manage-relations skill.
+- **File fields** (mdvdb ≥ 0.2.0): use for collection-local non-Markdown
+  attachments such as images, PDFs, audio, video, office files, or archives.
+  Store root-relative wiki links in a YAML list even for zero or one value.
+  Links with explicit non-Markdown extensions infer as `File`; pin ambiguous
+  or extensionless names with `field_type: file` in the schema overlay. File
+  values stay raw and do not join relations, backlinks, or the graph.
+- **Formula, Lookup, and Rollup fields**: omit these output keys from authored
+  YAML even when sibling files contain materialized examples. Author only the
+  ordinary fields and Relations they consume. Ingest/watch safely computes the
+  outputs; never copy, guess, or manually repair them.
 
 ```yaml
 ---
@@ -84,8 +98,13 @@ tags:
   - topic-b
 status: draft
 category: guides
-client: "[[clients/acme]]"
-reviewers: ["[[people/jane]]", "[[people/joe]]"]
+client: clients/acme.md
+reviewers:
+  - people/jane.md
+  - people/joe.md
+attachments:
+  - "[[assets/mockup.png]]"
+  - "[[documents/spec.pdf]]"
 ---
 ```
 
@@ -139,6 +158,14 @@ See [detailed implementation](./implementation.md#core-logic) for code.
 
 After writing, suggest the user run:
 - `mdvdb ingest --file <path>` to index the new document
+- Inspect the ingest `module_reports`: Formula runs before `lookup_rollup`.
+  Diagnose failures with `mdvdb modules status lookup_rollup --json`; never
+  type a replacement computed value into the document.
 - `mdvdb get <path> --populate` to verify frontmatter parsed correctly and
-  every relation resolves (`exists: true`)
+  every relation resolves (`exists: true`). Treat `frontmatter` as the
+  authoritative computed value and inspect `computed_field_errors` before
+  presenting any computed property.
+- `mdvdb schema --path <parent-dir> --json` to confirm attachment columns are
+  `"File"`; verify their physical paths directly because `--populate` applies
+  only to relations
 - `mdvdb links <path>` to confirm links were extracted

@@ -2,10 +2,11 @@
 name: check-document
 description: >
   Validate a markdown (.md) file against the vault's schema, check heading
-  structure, verify frontmatter relations resolve, and assess link
-  connectivity using mdvdb. Reports missing frontmatter fields, dangling
-  relations, orphan status, broken links, and structural issues. Use when
-  auditing document quality.
+  structure, verify frontmatter relations, File attachment fields, and
+  Formula/Lookup/Rollup diagnostics, and assess link connectivity using mdvdb.
+  Reports missing authored fields, dangling relations, computed dependency
+  failures, broken attachments, orphan status, broken links, and structural
+  issues. Use when auditing document quality.
 ---
 
 # Check Document
@@ -27,24 +28,41 @@ Read the file. Note its frontmatter fields, heading structure, and links.
 ```
 mdvdb schema --path <parent-dir> --json
 mdvdb get "$ARGUMENTS" --populate --json
+mdvdb modules status formula --path <parent-dir> --json
+mdvdb modules status lookup_rollup --path <parent-dir> --json
 ```
 
 (Scoping the schema to the file's folder avoids false "missing field" findings
 from other folders' schemas; drop `--path` for a whole-vault view.)
 
 Report:
-- **Missing fields**: schema fields not present in this file's frontmatter
-  (fields marked `required` in the schema overlay are hard failures)
+- **Missing authored fields**: ordinary schema fields not present in this
+  file's frontmatter (ordinary fields marked `required` are hard failures).
+  Do not report an absent Formula/Lookup/Rollup output as something to type in.
 - **Type mismatches**: fields with values that don't match the schema type
   (e.g., string where number expected, non-ISO date format; `Relation` fields
-  should hold link-shaped values)
+  should link to Markdown documents; `File` fields should be arrays of quoted,
+  collection-root-relative links to non-Markdown files)
 - **Invalid values**: fields with values outside `allowed_values` if defined
 - **Extra fields**: fields in this file not in the vault schema (may be intentional)
 - **Dangling relations**: entries in the populated `relations` map with
   `exists: false` — the target file doesn't exist
+- **Broken File references**: resolve each raw File value against the vault
+  root and report missing files. Reject absolute paths, URLs, `..`, Markdown
+  targets, and paths outside the vault. mdvdb does not include File values in
+  `--populate`; inspect the raw frontmatter and filesystem directly.
+- **Non-canonical File values**: legacy scalar values remain readable, but
+  edited File fields must use a YAML list even for zero or one file
 - **Unquoted wiki-links**: a frontmatter value that parsed as a nested array
   (e.g. `[["clients/acme"]]`) signals an unquoted `[[x]]` — valid YAML but
-  not a string, so no relation is detected; it must be quoted
+  not a string, so no relation is detected. Replace it with a plain `.md` path
+  (preferred) or quote the wiki link
+- **Computed failures**: inspect `computed_field_errors` from `get` and both
+  module-status responses. A missing relation target/key, type error,
+  dependency failure/cycle, or refused concurrent write means the output is
+  unavailable; never accept or restore a stale materialized value manually.
+  Successful values in `frontmatter` are authoritative; `computed_fields` is
+  only a provenance mirror.
 
 ### 3. Heading structure
 
@@ -78,7 +96,11 @@ Present a checklist:
 - [ ] Frontmatter has all required schema fields
 - [ ] Field types match schema
 - [ ] Relation fields resolve to existing files (no dangling relations)
-- [ ] Wiki-link frontmatter values are quoted
+- [ ] File fields are canonical lists and every referenced physical file exists
+- [ ] Formula/Lookup/Rollup outputs are current or have an actionable
+      diagnostic, and no computed output was manually edited
+- [ ] Relation values use plain `.md` paths by default; wiki links that remain
+      are quoted
 - [ ] Headings use proper hierarchy (no skipped levels)
 - [ ] Sections are reasonably sized for chunking
 - [ ] Document has outgoing links to related content
@@ -93,6 +115,8 @@ mdvdb doctor --json
 mdvdb orphans --json
 mdvdb schema --json
 mdvdb info --json
+mdvdb modules status formula --json
+mdvdb modules status lookup_rollup --json
 ```
 
 Report:
@@ -100,4 +124,6 @@ Report:
   hygiene, unquoted wiki-links)
 - Total orphan count and list (files with no links)
 - Schema inconsistencies (Mixed-type fields, low-coverage fields)
+- Formula/Lookup/Rollup diagnostics, grouped by path and output field; fix the
+  definition or dependency and rerun the module instead of authoring outputs
 - Sync state from `info` (`sync.new` / `sync.changed` files need `mdvdb ingest`)
